@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>Gia sư Bông – Tiếng Anh lớp 3</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <!-- Azure Speech SDK (chấm phát âm + giọng đọc) -->
+  <script src="https://aka.ms/csspeech/jsbrowserpackageraw"></script>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/",
+        "@pixiv/three-vrm": "https://cdn.jsdelivr.net/npm/@pixiv/three-vrm@3/lib/three-vrm.module.min.js"
+      }
+    }
+  </script>
+</head>
+<body>
+  <header>
+    <div class="logo">🐰 Gia sư Bông</div>
+    <div id="mode" class="mode"></div>
+    <button id="parent-btn" class="ghost">👨‍👩‍👧 Phụ huynh</button>
+  </header>
+
+  <main>
+    <section class="stage">
+      <div id="avatar"></div>
+      <div id="subtitle" class="subtitle"></div>
+    </section>
+
+    <section class="panel">
+      <!-- Trang chủ -->
+      <div id="home">
+        <h2>Chọn bài học</h2>
+        <div id="units" class="units"></div>
+        <div class="home-foot">
+          <button id="free-talk" class="big">💬 Trò chuyện với Bông</button>
+          <button id="review" class="big alt">🔁 Ôn từ khó</button>
+          <span id="today" class="today"></span>
+        </div>
+      </div>
+
+      <!-- Bài học -->
+      <div id="lesson" class="hidden">
+        <div class="lesson-top">
+          <button id="exit" class="ghost">✖ Thoát</button>
+          <span id="stage-name" class="stage-name"></span>
+          <label class="slow"><input type="checkbox" id="slow" /> 🐢 Đọc chậm</label>
+        </div>
+        <div id="dots" class="dots"></div>
+
+        <div id="card" class="card hidden">
+          <div id="c-emoji" class="c-emoji"></div>
+          <div id="c-text" class="c-text"></div>
+          <div id="c-vi" class="c-vi"></div>
+          <div id="result" class="result"></div>
+        </div>
+
+        <div id="chat" class="chat hidden">
+          <div id="chat-log" class="chat-log"></div>
+        </div>
+
+        <div class="controls">
+          <button id="replay" class="round" title="Nghe lại">🔊</button>
+          <button id="mic" class="mic" disabled title="Bấm để nói">🎤</button>
+          <div id="micHint" class="mic-hint"></div>
+        </div>
+      </div>
+
+      <!-- Tổng kết -->
+      <div id="summary" class="hidden">
+        <h2>Hoàn thành! 🎉</h2>
+        <div id="sum-stars" class="stars huge"></div>
+        <p id="sum-text" class="sum-text"></p>
+        <button id="home-btn" class="big">🏠 Về trang chủ</button>
+        <button id="again-btn" class="big alt">📚 Học bài khác</button>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <!-- Phụ huynh -->
+  <dialog id="parent">
+    <div class="tabs">
+      <button class="on" data-tab="tab-settings">⚙️ Cài đặt</button>
+      <button data-tab="tab-report">📊 Báo cáo</button>
+      <button id="close-parent" class="ghost">✖</button>
+    </div>
+
+    <div id="tab-settings" class="tab">
+      <form id="settings-form">
+        <fieldset>
+          <legend>Bản online (Vercel)</legend>
+          <label>Mật khẩu app <input name="appPassword" type="password" autocomplete="off" placeholder="APP_PASSWORD đã đặt trên Vercel" /></label>
+          <p class="note">Bản online giữ key trên máy chủ. Chỉ cần mật khẩu này, để trống các ô key bên dưới.</p>
+        </fieldset>
+        <fieldset>
+          <legend>Azure Speech (chấm phát âm + giọng đọc)</legend>
+          <label>Key <input name="azureKey" type="password" autocomplete="off" placeholder="Dán Key 1 của Speech resource" /></label>
+          <label>Vùng (region) <input name="azureRegion" placeholder="southeastasia" /></label>
+          <label>Giọng tiếng Anh <input name="voiceEn" /></label>
+          <label>Giọng tiếng Việt <input name="voiceVi" /></label>
+        </fieldset>
+        <fieldset>
+          <legend>Gemini (trò chuyện)</legend>
+          <label>Key <input name="geminiKey" type="password" autocomplete="off" placeholder="Dán API key từ Google AI Studio" /></label>
+          <label>Mô hình <input name="geminiModel" /></label>
+        </fieldset>
+        <fieldset>
+          <legend>Học tập</legend>
+          <label>Điểm 3 sao ≥ <input name="greatScore" type="number" min="50" max="100" /></label>
+          <label>Điểm đạt (2 sao) ≥ <input name="goodScore" type="number" min="30" max="95" /></label>
+          <label>Số lần thử mỗi từ <input name="maxTries" type="number" min="1" max="5" /></label>
+          <label>Số lượt trò chuyện cuối bài <input name="chatTurns" type="number" min="1" max="10" /></label>
+          <label>Số lượt trò chuyện tự do <input name="freeTurns" type="number" min="2" max="20" /></label>
+          <label>Giới hạn phút/ngày <input name="dailyMinutes" type="number" min="5" max="120" /></label>
+        </fieldset>
+        <div class="row">
+          <button id="save-settings" class="big">💾 Lưu</button>
+          <button id="test-voice" class="alt">🔊 Thử giọng</button>
+          <button id="test-gemini" class="alt">🧠 Thử Gemini</button>
+        </div>
+        <p class="note">Key chỉ lưu trong trình duyệt trên máy này, không gửi đi đâu ngoài Azure/Google.</p>
+      </form>
+    </div>
+
+    <div id="tab-report" class="tab hidden">
+      <h3>Thời gian học 7 ngày</h3>
+      <div id="r-days" class="days"></div>
+      <h3>Từ / câu cần luyện thêm</h3>
+      <ul id="r-items"></ul>
+      <h3>Âm còn yếu</h3>
+      <ul id="r-phon"></ul>
+      <button id="reset-progress" class="ghost danger">🗑 Xóa tiến độ</button>
+    </div>
+  </dialog>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

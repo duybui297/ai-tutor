@@ -1,0 +1,5 @@
+# Không bao giờ gửi key thật lên Vercel — key đặt trong Environment Variables
+js/keys.js
+start.command
+.DS_Store
+models/*.vrm

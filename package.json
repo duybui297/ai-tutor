@@ -1,0 +1,9 @@
+{
+  "name": "gia-su-bong",
+  "private": true,
+  "type": "module",
+  "description": "Gia sư AI tiếng Anh lớp 3 — web tĩnh + hàm /api trên Vercel giữ key bí mật",
+  "engines": {
+    "node": ">=18"
+  }
+}

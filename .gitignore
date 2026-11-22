@@ -1,0 +1,8 @@
+# Key thật — không đưa lên GitHub
+js/keys.js
+
+# File rác của macOS
+.DS_Store
+
+# Nhân vật VRM riêng (file lớn)
+models/*.vrm
