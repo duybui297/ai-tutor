@@ -35,7 +35,13 @@
     <section class="panel">
       <!-- Trang chủ -->
       <div id="home">
-        <h2>Chọn bài học</h2>
+        <div class="home-head">
+          <h2>Chọn bài học</h2>
+          <div id="lang-toggle" class="lang-toggle" title="Chế độ ngôn ngữ của Bông">
+            <button data-lang="vi">🇻🇳 + 🇬🇧 Song ngữ</button>
+            <button data-lang="en">🇬🇧 English only</button>
+          </div>
+        </div>
         <div id="units" class="units"></div>
         <div class="home-foot">
           <button id="free-talk" class="big">💬 Trò chuyện với Bông</button>
@@ -113,6 +119,12 @@
         </fieldset>
         <fieldset>
           <legend>Học tập</legend>
+          <label>Chế độ ngôn ngữ
+            <select name="langMode">
+              <option value="vi">Song ngữ — giải thích bằng tiếng Việt</option>
+              <option value="en">Chỉ tiếng Anh — Bông không nói tiếng Việt</option>
+            </select>
+          </label>
           <label>Điểm 3 sao ≥ <input name="greatScore" type="number" min="50" max="100" /></label>
           <label>Điểm đạt (2 sao) ≥ <input name="goodScore" type="number" min="30" max="95" /></label>
           <label>Số lần thử mỗi từ <input name="maxTries" type="number" min="1" max="5" /></label>

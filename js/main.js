@@ -5,7 +5,7 @@ import { Avatar } from './avatar.js';
 import { AzureSpeech } from './speech-azure.js';
 import { BrowserSpeech } from './speech-browser.js';
 import { GeminiBrain, ScriptedBrain } from './brain.js';
-import { evaluate, praiseEnd, en, vi } from './feedback.js';
+import { evaluate, praiseEnd, en, vi, tr, t, englishOnly, setLangMode } from './feedback.js';
 import * as progress from './progress.js';
 import { checkGrammar } from './grammar.js';
 import { cloud, detectCloud } from './cloud.js';
@@ -26,6 +26,8 @@ const hasAzure = () => (!!settings.azureKey || cloud.azure) && AzureSpeech.avail
 const hasGemini = () => !!settings.geminiKey || cloud.gemini;
 
 function setupEngines() {
+  setLangMode(settings.langMode);
+  renderLangToggle();
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   speech?.stop?.();
   speech = hasAzure() ? new AzureSpeech(settings, audioCtx, cloud) : new BrowserSpeech(settings);
@@ -46,6 +48,22 @@ function setupEngines() {
 async function initEngines() {
   await detectCloud(settings.appPassword);
   setupEngines();
+}
+
+// ---------- chế độ ngôn ngữ ----------
+function renderLangToggle() {
+  for (const b of document.querySelectorAll('#lang-toggle button')) {
+    b.classList.toggle('on', b.dataset.lang === settings.langMode);
+  }
+}
+
+function setLang(mode) {
+  if (run) return; // không đổi giữa bài
+  settings = { ...settings, langMode: mode };
+  saveSettings(settings);
+  setupEngines();
+  renderHome();
+  toast(mode === 'en' ? '🇬🇧 English only — Bông chỉ nói tiếng Anh' : '🇻🇳 Song ngữ — Bông giải thích bằng tiếng Việt');
 }
 
 // ---------- tiện ích ----------
@@ -77,6 +95,7 @@ const slowOn = () => $('#slow').checked;
 
 async function say(parts, emotion, { slow = false } = {}) {
   check();
+  parts = parts.filter((p) => p && p.text);
   if (emotion) avatar.setEmotion(emotion);
   setSubtitle(parts);
   try {
@@ -88,7 +107,7 @@ async function say(parts, emotion, { slow = false } = {}) {
   check();
 }
 
-function waitMic(hint = 'Bấm micro rồi nói nhé!') {
+function waitMic(hint = t('Bấm micro rồi nói nhé!', 'Press the mic and speak!')) {
   check();
   const btn = $('#mic');
   btn.disabled = false;
@@ -110,7 +129,7 @@ function waitMic(hint = 'Bấm micro rồi nói nhé!') {
 async function listening(fn) {
   avatar.setListening(true);
   $('#mic').classList.add('listening');
-  $('#micHint').textContent = 'Bông đang nghe con nói… 👂';
+  $('#micHint').textContent = t('Bông đang nghe con nói… 👂', 'Bong is listening… 👂');
   try {
     return await guard(fn());
   } finally {
@@ -138,7 +157,7 @@ function renderHome() {
   }).join('');
   const m = progress.todayMinutes();
   $('#today').textContent = `Hôm nay con đã học ${m}/${settings.dailyMinutes} phút`;
-  $('#subtitle').innerHTML = '<span>Chào con! Con chọn một bài để học cùng Bông nhé 🐰</span>';
+  $('#subtitle').innerHTML = `<span>${t('Chào con! Con chọn một bài để học cùng Bông nhé 🐰', 'Hi! Pick a lesson and learn with Bong 🐰')}</span>`;
 }
 
 function setStage(text) {
@@ -154,7 +173,7 @@ function showCard(item) {
   show($('#chat'), false);
   $('#c-emoji').textContent = item.emoji || '💬';
   $('#c-text').textContent = item.en;
-  $('#c-vi').textContent = item.vi || '';
+  $('#c-vi').textContent = englishOnly() ? '' : item.vi || '';
   $('#result').innerHTML = '';
 }
 
@@ -164,9 +183,9 @@ function cls(score) {
 
 function showResult(fb, res) {
   const stars = `<div class="stars">${'★'.repeat(fb.stars)}<span>${'★'.repeat(3 - fb.stars)}</span></div>`;
-  let html = `${stars}<div class="r-title">${esc(fb.title)}${res && !res.noSpeech ? ` <small>${fb.score} điểm</small>` : ''}</div>`;
+  let html = `${stars}<div class="r-title">${esc(fb.title)}${res && !res.noSpeech ? ` <small>${fb.score} ${t('điểm', 'points')}</small>` : ''}</div>`;
   if (res && !res.noSpeech) {
-    html += `<div class="heard">Bông nghe được: “${esc(res.heard)}”</div>`;
+    html += `<div class="heard">${t('Bông nghe được', 'Bong heard')}: “${esc(res.heard)}”</div>`;
     html += '<div class="words">' + res.words.map((w) => `<span class="chip ${cls(w.score)}">${esc(w.word)}</span>`).join('') + '</div>';
     const fw = fb.focus && res.words.find((w) => w.word.toLowerCase() === String(fb.focus.word).toLowerCase());
     if (fw && fw.phonemes.length) {
@@ -193,7 +212,7 @@ async function practiceItem(item) {
   for (let attempt = 0; attempt < settings.maxTries; attempt++) {
     run.lastModel = item.en;
     if (attempt === 0) await say([en(item.en)], 'neutral', { slow: slowOn() });
-    else await say([vi('Con nghe lại nhé.'), en(item.en)], 'neutral', { slow: true });
+    else await say([tr('Con nghe lại nhé.', 'Listen again.'), en(item.en)], 'neutral', { slow: true });
 
     await waitMic();
     let res = null;
@@ -212,7 +231,7 @@ async function practiceItem(item) {
       break;
     }
     if (attempt === settings.maxTries - 1) {
-      await say([en('Good effort!'), vi('Mình sẽ ôn lại phần này sau nhé.')], 'encourage');
+      await say([en('Good effort!'), tr('Mình sẽ ôn lại phần này sau nhé.', 'We will practise it again later.')], 'encourage');
       break;
     }
     await say(fb.parts, fb.emotion);
@@ -241,14 +260,14 @@ async function practiceFix(fix) {
   const resBox = bubble.querySelector('.fix-res');
   run.lastModel = fix.right;
   const intro = fix.wrong ? 'Con nên nói là:' : 'Con có thể trả lời bằng tiếng Anh thế này:';
-  const parts = [vi(intro), en(fix.right)];
-  if (fix.explain_vi && fix.wrong) parts.push(vi(fix.explain_vi));
-  parts.push(vi('Con nói lại theo Bông nhé.'));
+  const parts = [tr(intro, fix.wrong ? 'We say:' : 'You can say:'), en(fix.right)];
+  if (fix.explain_vi && fix.wrong) parts.push(englishOnly() ? en(fix.explain_vi) : vi(fix.explain_vi));
+  parts.push(tr('Con nói lại theo Bông nhé.', 'Now you say it!'));
   await say(parts, 'encourage');
 
   let best = 0;
   for (let attempt = 0; attempt < 2; attempt++) {
-    await waitMic('Bấm micro rồi nói lại câu đúng nhé!');
+    await waitMic(t('Bấm micro rồi nói lại câu đúng nhé!', 'Press the mic and say it again!'));
     let res = null;
     try {
       res = await listening(() => speech.assess(fix.right));
@@ -265,8 +284,8 @@ async function practiceFix(fix) {
       await say([en(fb.title)], fb.emotion);
       break;
     }
-    if (attempt === 0) await say([vi('Mình thử lại nhé.'), en(fix.right)], 'encourage', { slow: true });
-    else await say([en('Good try!'), vi('Mình sẽ luyện câu này sau nhé.')], 'encourage');
+    if (attempt === 0) await say([tr('Mình thử lại nhé.', 'Try again.'), en(fix.right)], 'encourage', { slow: true });
+    else await say([en('Good try!'), tr('Mình sẽ luyện câu này sau nhé.', 'We will practise it later.')], 'encourage');
   }
   run.items.push({ en: fix.right, vi: fix.explain_vi || '', emoji: '💬' });
   run.stars.push(best);
@@ -292,9 +311,9 @@ async function chat(unit, turns) {
   for (let safety = 0; safety < 20; safety++) {
     addBubble('bong', r.say_en, r.say_vi);
     run.lastModel = r.say_en;
-    await say([en(r.say_en), vi(r.say_vi)], r.emotion);
+    await say([en(r.say_en), englishOnly() ? null : vi(r.say_vi)], r.emotion);
     if (r.end) break;
-    await waitMic('Bấm micro rồi trả lời Bông nhé!');
+    await waitMic(t('Bấm micro rồi trả lời Bông nhé!', 'Press the mic and answer Bong!'));
     let heard = { text: '', lang: 'en-US' };
     try {
       heard = await listening(() => speech.listen(phrases));
@@ -302,7 +321,7 @@ async function chat(unit, turns) {
       if (e instanceof Aborted) throw e;
       showError(e);
     }
-    addBubble('kid', heard.text || '(Bông chưa nghe rõ)');
+    addBubble('kid', heard.text || t('(Bông chưa nghe rõ)', '(I could not hear you)'));
     avatar.setEmotion('think');
     turn++;
     try {
@@ -318,7 +337,7 @@ async function chat(unit, turns) {
     }
     // Lưới an toàn: nếu AI bỏ sót lỗi hay gặp thì app tự sửa
     if (!r.fix && heard.text) {
-      const g = checkGrammar(heard.text);
+      const g = checkGrammar(heard.text, settings.langMode);
       if (g) r = { ...r, fix: g, say_en: r.say_en.replace(/^(great|excellent|perfect|well done|good job|wonderful)[!.,]?\s*/i, '') || r.say_en };
     }
     if (r.fix) await practiceFix(r.fix);
@@ -333,8 +352,8 @@ async function summary() {
   $('#sum-stars').innerHTML = `${'★'.repeat(stars)}<span>${'★'.repeat(3 - stars)}</span>`;
   const weak = run.items.filter((_, i) => run.stars[i] < 2).map((it) => it.en);
   $('#sum-text').innerHTML = weak.length
-    ? `Con cần luyện thêm: <b>${weak.map(esc).join(', ')}</b>`
-    : 'Con nói tốt tất cả các từ và câu! 🎉';
+    ? `${t('Con cần luyện thêm', 'Practise more')}: <b>${weak.map(esc).join(', ')}</b>`
+    : t('Con nói tốt tất cả các từ và câu! 🎉', 'You said everything well! 🎉');
   await say(praiseEnd(avg), 'cheer');
 }
 
@@ -384,15 +403,15 @@ function startUnit(unit) {
     setStage('Khởi động');
     show($('#card'), false);
     show($('#chat'), false);
-    await say([en(`Hi! Today we learn: ${unit.titleEn}.`), vi(`Hôm nay mình học bài ${unit.titleVi} nhé!`)], 'happy');
+    await say([en(`Hi! Today we learn: ${unit.titleEn}.`), tr(`Hôm nay mình học bài ${unit.titleVi} nhé!`)], 'happy');
     setStage('Từ mới');
-    await say([vi('Con nghe Bông đọc, rồi bấm micro và nói theo nhé.')], 'happy');
+    await say([tr('Con nghe Bông đọc, rồi bấm micro và nói theo nhé.', 'Listen to me, then press the mic and say it.')], 'happy');
     for (const w of unit.words) await practiceItem(w);
     setStage('Mẫu câu');
-    await say([en('Now, sentences!'), vi('Giờ mình luyện nói cả câu nhé.')], 'happy');
+    await say([en('Now, sentences!'), tr('Giờ mình luyện nói cả câu nhé.')], 'happy');
     for (const s of unit.sentences) await practiceItem(s);
     setStage('Trò chuyện');
-    await say([en("Let's talk!"), vi('Giờ con trò chuyện với Bông nhé.')], 'cheer');
+    await say([en("Let's talk!"), tr('Giờ con trò chuyện với Bông nhé.')], 'cheer');
     await chat(unit, settings.chatTurns);
   });
 }
@@ -400,7 +419,7 @@ function startUnit(unit) {
 function startFreeTalk() {
   startRun(null, [], async () => {
     setStage('Trò chuyện tự do');
-    await say([en("Let's chat!"), vi('Con trò chuyện với Bông nhé. Nói sai cũng không sao, Bông sẽ giúp con sửa.')], 'cheer');
+    await say([en("Let's chat!"), tr('Con trò chuyện với Bông nhé. Nói sai cũng không sao, Bông sẽ giúp con sửa.', 'Mistakes are OK. I will help you!')], 'cheer');
     await chat(FREE_TALK, settings.freeTurns);
   });
 }
@@ -414,7 +433,7 @@ function startReview() {
   const items = weak.map((w) => findItem(w.text) || { en: w.text, vi: '', emoji: '🔁' });
   startRun(null, items, async () => {
     setStage('Ôn từ khó');
-    await say([en('Review time!'), vi('Mình cùng ôn lại những từ con còn chưa chắc nhé.')], 'happy');
+    await say([en('Review time!'), tr('Mình cùng ôn lại những từ con còn chưa chắc nhé.')], 'happy');
     for (const it of items) await practiceItem(it);
   });
 }
@@ -473,6 +492,7 @@ $('#units').addEventListener('click', (e) => {
   if (b) startUnit(UNITS.find((u) => u.id === b.dataset.id));
 });
 $('#review').onclick = startReview;
+for (const b of document.querySelectorAll('#lang-toggle button')) b.onclick = () => setLang(b.dataset.lang);
 $('#free-talk').onclick = startFreeTalk;
 $('#exit').onclick = exitLesson;
 $('#home-btn').onclick = () => showScreen('home');
@@ -496,7 +516,7 @@ $('#test-voice').onclick = async (e) => {
   if (audioCtx?.state === 'suspended') await audioCtx.resume();
   try {
     avatar.setEmotion('happy');
-    await speech.speak([en('Hello! I am Bong, your English friend.'), vi('Xin chào, mình là Bông!')]);
+    await speech.speak([en('Hello! I am Bong, your English friend.'), tr('Xin chào, mình là Bông!')].filter(Boolean));
     toast(speech.kind === 'azure' ? 'Giọng Azure hoạt động ✅' : 'Đang dùng giọng của trình duyệt (chế độ thử)');
   } catch (err) {
     showError(err);

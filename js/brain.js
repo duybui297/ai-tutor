@@ -9,7 +9,7 @@ import { geminiProxy } from './cloud.js';
 
 const EMOTIONS = ['neutral', 'happy', 'cheer', 'think', 'encourage'];
 
-function systemPrompt(unit, maxTurns) {
+function systemPrompt(unit, maxTurns, lang = 'vi') {
   const vocab = unit.words.map((w) => w.en).join(', ');
   const patterns = unit.sentences.map((s) => s.en).join(' | ');
   const qs = unit.chat.questions.map((q) => `- ${q.ask} (model answer: ${q.model})`).join('\n');
@@ -41,8 +41,17 @@ How to correct (very important):
 - "say_vi" is optional, very short warm Vietnamese (xưng "Bông", gọi "con"); usually empty.
 
 The conversation has ${maxTurns} turns. On the last turn, praise the child, say goodbye, and set "end" to true.
-Reply ONLY with JSON: {"say_en": string, "say_vi": string, "emotion": one of ${EMOTIONS.join('|')}, "end": boolean, "fix_wrong": string, "fix_right": string, "fix_explain_vi": string}`;
+Reply ONLY with JSON: {"say_en": string, "say_vi": string, "emotion": one of ${EMOTIONS.join('|')}, "end": boolean, "fix_wrong": string, "fix_right": string, "fix_explain_vi": string}${lang === 'en' ? ENGLISH_ONLY : ''}`;
 }
+
+// Chế độ chỉ tiếng Anh: ghi đè các quy tắc tiếng Việt ở trên
+const ENGLISH_ONLY = `
+
+LANGUAGE MODE: ENGLISH ONLY (this overrides the rules above).
+- Never use Vietnamese anywhere. "say_vi" must always be "".
+- Write "fix_explain_vi" in very simple English, under 10 words, e.g. "We say: my name IS." or "With I, we use am."
+- If the child speaks Vietnamese, leave fix_wrong empty, put the English sentence in fix_right, and fix_explain_vi "You can say it like this."
+- If the child seems lost, give a very easy choice question (e.g. "Red or blue?").`;
 
 // Lấy đối tượng JSON từ câu trả lời, kể cả khi có ```json ... ``` hoặc chữ thừa
 function parseJSON(text) {
@@ -72,6 +81,7 @@ export class GeminiBrain {
     this.key = settings.geminiKey;
     this.useProxy = !settings.geminiKey && !!cloudInfo?.gemini;
     this.pass = settings.appPassword;
+    this.lang = settings.langMode === 'en' ? 'en' : 'vi';
     let working = null;
     try { working = localStorage.getItem('bong.geminiModel'); } catch { /* bỏ qua */ }
     this.models = [...new Set([working, settings.geminiModel, ...FALLBACK_MODELS].filter(Boolean))];
@@ -174,7 +184,7 @@ export class GeminiBrain {
     this.unit = unit;
     this.turn = 0;
     this.maxTurns = maxTurns || this.defaultTurns;
-    this.sys = systemPrompt(unit, this.maxTurns);
+    this.sys = systemPrompt(unit, this.maxTurns, this.lang);
     this.history = [{ role: 'user', parts: [{ text: '[Start] Greet the child briefly and ask your first question. No fix on this turn.' }] }];
     const out = await this._call();
     out.fix = null;
@@ -194,12 +204,13 @@ export class GeminiBrain {
 export class ScriptedBrain {
   constructor(settings) {
     this.defaultTurns = settings?.chatTurns || 4;
+    this.lang = settings?.langMode === 'en' ? 'en' : 'vi';
   }
 
   _ask() {
     const q = this.unit.chat.questions[this.i];
     if (!q || this.i >= this.maxTurns) {
-      return { say_en: 'You did a great job today! Bye bye!', say_vi: 'Con giỏi lắm! Hẹn gặp lại con nhé.', emotion: 'cheer', end: true, fix: null };
+      return { say_en: 'You did a great job today! Bye bye!', say_vi: this.lang === 'en' ? '' : 'Con giỏi lắm! Hẹn gặp lại con nhé.', emotion: 'cheer', end: true, fix: null };
     }
     return { say_en: q.ask, say_vi: '', emotion: 'happy', end: false, fix: null };
   }
@@ -219,9 +230,9 @@ export class ScriptedBrain {
     const english = text && lang.startsWith('en') && /[a-z]/i.test(text);
     if (!english) {
       // im lặng hoặc nói tiếng Việt → đưa câu mẫu để bé nói lại
-      return { ...next, say_en: next.say_en, emotion: 'encourage', fix: q ? toFix('', q.model, 'Con nói bằng tiếng Anh thế này nhé.') : null };
+      return { ...next, say_en: next.say_en, emotion: 'encourage', fix: q ? toFix('', q.model, this.lang === 'en' ? 'You can say it like this.' : 'Con nói bằng tiếng Anh thế này nhé.') : null };
     }
-    const fix = checkGrammar(text);
+    const fix = checkGrammar(text, this.lang);
     // không có Gemini thì không chắc câu đã đúng hết → chỉ cảm ơn, không khen "đúng"
     return { ...next, say_en: (fix ? 'Good try! ' : 'Thank you! ') + next.say_en, emotion: fix ? 'encourage' : 'happy', fix };
   }

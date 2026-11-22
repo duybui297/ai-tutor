@@ -78,6 +78,19 @@ Máy chủ gồm các file trong thư mục `api/`:
 4. **Trò chuyện** — 4 lượt hỏi đáp ngắn theo chủ đề.
 5. **Tổng kết** — số sao của bài, những từ cần luyện thêm.
 
+### 🇻🇳 / 🇬🇧 Hai chế độ ngôn ngữ
+Nút chuyển ở góc trên trang chủ, hoặc trong **Phụ huynh → Cài đặt → Chế độ ngôn ngữ**.
+
+| | 🇻🇳 + 🇬🇧 Song ngữ | 🇬🇧 English only |
+|---|---|---|
+| Bông đọc mẫu, khen | tiếng Anh | tiếng Anh |
+| Mẹo sửa âm | tiếng Việt: "Con đặt đầu lưỡi giữa hai hàm răng…" | tiếng Anh dễ: "Put your tongue between your teeth…" |
+| Sửa lỗi câu | "Con nên nói là: *My name is Evan*. Với my name, mình dùng is." | "We say: *My name is Evan*. We say my name IS." |
+| Nghĩa tiếng Việt trên thẻ từ | có | ẩn (chỉ còn hình) |
+| Hợp với | bé mới học, cần hiểu vì sao sai | bé đã quen, luyện nghe – nói thuần Anh |
+
+Mục Phụ huynh luôn giữ tiếng Việt.
+
 ### 💬 Trò chuyện và sửa lỗi câu
 Có ở cuối mỗi bài, và ở nút **💬 Trò chuyện với Bông** trên trang chủ (8 lượt, chủ đề tổng hợp). Ví dụ:
 

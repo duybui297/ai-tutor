@@ -17,6 +17,7 @@ export const DEFAULTS = {
   freeTurns: 8,                        // số lượt ở chế độ "Trò chuyện tự do"
   dailyMinutes: 25,                    // giới hạn thời gian học mỗi ngày
   appPassword: '',                     // mật khẩu app khi chạy trên Vercel
+  langMode: 'vi',                      // 'vi' = song ngữ, 'en' = chỉ tiếng Anh
 };
 
 // js/keys.js chứa key thật, KHÔNG đưa lên git (.gitignore đã chặn).
